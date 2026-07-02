@@ -9,7 +9,6 @@ contract WarehouseReceipt is ERC721, Ownable {
     enum ReceiptStatus { Issued, Active, Claimed, Defaulted, Expired }
 
     struct WarehouseReceiptData {
-        uint256 id;
         address farmer;
         address warehouseAgent;
         address mfi;
@@ -98,7 +97,6 @@ contract WarehouseReceipt is ERC721, Ownable {
         _nextTokenId++;
 
         _receipts[tokenId] = WarehouseReceiptData({
-            id: tokenId,
             farmer: farmer,
             warehouseAgent: msg.sender,
             mfi: address(0),
@@ -155,5 +153,10 @@ contract WarehouseReceipt is ERC721, Ownable {
     function getReceipt(uint256 tokenId) external view returns (WarehouseReceiptData memory) {
         require(_ownerOf(tokenId) != address(0), "WHR: token does not exist");
         return _receipts[tokenId];
+    }
+
+    function tokenURI(uint256 tokenId) public view override returns (string memory) {
+        require(_ownerOf(tokenId) != address(0), "WHR: token does not exist");
+        return _receipts[tokenId].metadataUri;
     }
 }

@@ -4,6 +4,9 @@ import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { ethers } from "hardhat";
 
 describe("WarehouseReceipt", function () {
+  // ReceiptStatus enum values matching the Solidity contract
+  const Status = { Issued: 0, Active: 1, Claimed: 2, Defaulted: 3, Expired: 4 };
+
   async function deployFixture() {
     const [owner, agent, mfi, farmer, other] = await ethers.getSigners();
 
@@ -73,7 +76,8 @@ describe("WarehouseReceipt", function () {
     expect(data.warehouseAgent).to.equal(agent.address);
     expect(data.quantityKg).to.equal(1000n);
     expect(data.qualityScore).to.equal(75n);
-    expect(data.status).to.equal(0); // Issued
+    expect(data.status).to.equal(Status.Issued);
+    expect(await receipt.tokenURI(0)).to.equal("ipfs://QmTest");
   });
 
   it("should not issue receipt for inactive crop", async function () {
@@ -125,10 +129,10 @@ describe("WarehouseReceipt", function () {
     );
 
     const tx = await receipt.connect(mfi).activateReceipt(0, mfi.address);
-    await expect(tx).to.emit(receipt, "ReceiptStatusUpdated").withArgs(0, 1); // Active
+    await expect(tx).to.emit(receipt, "ReceiptStatusUpdated").withArgs(0, Status.Active);
 
     const data = await receipt.getReceipt(0);
-    expect(data.status).to.equal(1); // Active
+    expect(data.status).to.equal(Status.Active);
     expect(data.mfi).to.equal(mfi.address);
   });
 
@@ -143,7 +147,7 @@ describe("WarehouseReceipt", function () {
     await receipt.connect(mfi).activateReceipt(0, mfi.address);
 
     const tx = await receipt.connect(mfi).markClaimed(0);
-    await expect(tx).to.emit(receipt, "ReceiptStatusUpdated").withArgs(0, 2); // Claimed
+    await expect(tx).to.emit(receipt, "ReceiptStatusUpdated").withArgs(0, Status.Claimed);
   });
 
   it("should mark receipt defaulted", async function () {
@@ -157,7 +161,7 @@ describe("WarehouseReceipt", function () {
     await receipt.connect(mfi).activateReceipt(0, mfi.address);
 
     const tx = await receipt.connect(mfi).markDefaulted(0);
-    await expect(tx).to.emit(receipt, "ReceiptStatusUpdated").withArgs(0, 3); // Defaulted
+    await expect(tx).to.emit(receipt, "ReceiptStatusUpdated").withArgs(0, Status.Defaulted);
   });
 
   it("should not transition from Issued to Claimed directly", async function () {
@@ -193,6 +197,78 @@ describe("WarehouseReceipt", function () {
 
     await receipt.expireReceipt(0);
     const data = await receipt.getReceipt(0);
-    expect(data.status).to.equal(4); // Expired
+    expect(data.status).to.equal(Status.Expired);
+  });
+
+  it("should expire a receipt from Issued status", async function () {
+    const { receipt, agent, farmer, MAIZE } = await loadFixture(deployFixture);
+    const blockNum = await ethers.provider.getBlockNumber();
+    const block = await ethers.provider.getBlock(blockNum);
+    const expiry = block.timestamp + 10;
+    await receipt.connect(agent).issueReceipt(
+      farmer.address, 1000, expiry,
+      ethers.encodeBytes32String("WH-001"),
+      MAIZE, 50000, 75, "ipfs://QmTest"
+    );
+
+    await ethers.provider.send("evm_increaseTime", [15]);
+    await ethers.provider.send("evm_mine", []);
+
+    await receipt.expireReceipt(0);
+    const data = await receipt.getReceipt(0);
+    expect(data.status).to.equal(Status.Expired);
+  });
+
+  it("should not activate receipt from non-MFI caller", async function () {
+    const { receipt, agent, farmer, MAIZE } = await loadFixture(deployFixture);
+    const expiry = Math.floor(Date.now() / 1000) + 86400 * 30;
+    await receipt.connect(agent).issueReceipt(
+      farmer.address, 1000, expiry,
+      ethers.encodeBytes32String("WH-001"),
+      MAIZE, 50000, 75, "ipfs://QmTest"
+    );
+    await expect(
+      receipt.connect(agent).activateReceipt(0, agent.address)
+    ).to.be.revertedWith("WHR: caller is not an approved MFI");
+  });
+
+  it("should not issue receipt with past expiry", async function () {
+    const { receipt, agent, farmer, MAIZE } = await loadFixture(deployFixture);
+    const past = Math.floor(Date.now() / 1000) - 86400;
+    await expect(
+      receipt.connect(agent).issueReceipt(
+        farmer.address, 1000, past,
+        ethers.encodeBytes32String("WH-001"),
+        MAIZE, 50000, 75, "ipfs://QmTest"
+      )
+    ).to.be.revertedWith("WHR: expiry must be in the future");
+  });
+
+  it("should revert getReceipt for non-existent token", async function () {
+    const { receipt } = await loadFixture(deployFixture);
+    await expect(
+      receipt.getReceipt(999)
+    ).to.be.revertedWith("WHR: token does not exist");
+  });
+
+  it("should revert tokenURI for non-existent token", async function () {
+    const { receipt } = await loadFixture(deployFixture);
+    await expect(
+      receipt.tokenURI(999)
+    ).to.be.revertedWith("WHR: token does not exist");
+  });
+
+  it("should not allow non-owner to add MFI", async function () {
+    const { receipt, other, mfi } = await loadFixture(deployFixture);
+    await expect(
+      receipt.connect(other).addApprovedMfi(mfi.address)
+    ).to.be.revertedWithCustomError(receipt, "OwnableUnauthorizedAccount");
+  });
+
+  it("should not allow non-owner to remove warehouse agent", async function () {
+    const { receipt, other, agent } = await loadFixture(deployFixture);
+    await expect(
+      receipt.connect(other).removeWarehouseAgent(agent.address)
+    ).to.be.revertedWithCustomError(receipt, "OwnableUnauthorizedAccount");
   });
 });
