@@ -4,8 +4,8 @@
 // ============================================================
 
 export const CONTRACT_ADDRESSES = {
-  cropRegistry: "0x0000000000000000000000000000000000000000" as `0x${string}`,
-  warehouseReceipt: "0x0000000000000000000000000000000000000000" as `0x${string}`,
+  cropRegistry: "0x8BAd899c4C70CA7245AB34f437EB69ca80ff9eBe" as `0x${string}`,
+  warehouseReceipt: "0x160f4bEcca5d84a58918342a7AFA6bF65b1E7eb9" as `0x${string}`,
 } as const;
 
 // ----- WarehouseReceipt ABI (read-only functions used by dashboard) -----

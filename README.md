@@ -1,18 +1,50 @@
-# Avalanche Warehouse Receipt System
+<p align="center">
+  <h1 align="center">AgriVault</h1>
+  <p align="center">Digital Warehouse Receipts on Avalanche</p>
+</p>
 
-Digital collateralization for smallholder cooperatives. This system issues **digital warehouse receipt tokens** on Avalanche C-chain that represent verified harvest deposits, enabling local Microfinance Institutions (MFIs) to assess collateral value on-chain and approve micro-loans.
+<p align="center">
+  <a href="https://opensource.org/licenses/MIT">
+    <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License: MIT">
+  </a>
+  <a href="https://docs.soliditylang.org/">
+    <img src="https://img.shields.io/badge/Solidity-^0.8.28-363636?logo=solidity" alt="Solidity">
+  </a>
+  <a href="https://www.avax.network/">
+    <img src="https://img.shields.io/badge/Avalanche-C--Chain-E84142?logo=avalanche" alt="Avalanche">
+  </a>
+  <a href="https://github.com/Stranger-ghope/avalanche-warehouse-receipt/actions">
+    <img src="https://img.shields.io/badge/tests-43%20passing-brightgreen" alt="Tests: 43 passing">
+  </a>
+  <a href="https://nextjs.org/">
+    <img src="https://img.shields.io/badge/Next.js-14-black?logo=next.js" alt="Next.js">
+  </a>
+</p>
 
-## Problem
+---
 
-Banks refuse credit to smallholder farmers because they cannot verify harvest value. A local warehouse agent can physically verify the crop, but there is no digital bridge to make that verification bankable for a lender.
+Digital collateralization for smallholder cooperatives. **AgriVault** issues digital warehouse receipt tokens on Avalanche C-chain that represent verified harvest deposits, enabling local Microfinance Institutions (MFIs) to assess collateral value on-chain and approve micro-loans.
 
-## Solution
+## Impact: Closing the Agricultural Collateral Gap in Malawi
 
-A tri-party smart contract system where:
+In rural Malawi, smallholder farmers grow 80% of the nation's food but are locked out of formal credit. Banks cite one overwhelming reason: **they cannot verify agricultural collateral.**
 
-1. **Warehouse Agent** — A trusted third-party verifier physically inspects deposited crops (pilot: maize), signs off on volume and quality, and issues a digital warehouse receipt token.
-2. **Farmer (Asset Owner)** — Receives the ERC-721 token representing their stored harvest. The token serves as collateral for a loan.
-3. **MFI Manager (Lender)** — Reads receipt data on-chain (quantity, estimated value, quality score, expiry) to assess collateral and approve micro-loans. Can mark loans as claimed or defaulted.
+A farmer may have 2,000 kg of stored maize worth $1,000 — but to a lender four hours away, that asset is invisible. Without a trust mechanism to verify and monitor harvest value, banks default to offering 0% loan approval for unsecured smallholder credit.
+
+**AgriVault bridges this gap with a tri-party trust model:**
+
+1. A **Warehouse Agent** — a trusted local cooperative officer — physically inspects and signs off on the harvest
+2. An **ERC-721 token** is minted on Avalanche C-chain, encoding verified quantity, quality score, and estimated value on-chain
+3. An **MFI Manager** reads the token data on-chain and approves a micro-loan using the receipt as collateral
+
+This transforms an invisible asset into a bankable one. The pilot targets maize cooperatives in central Malawi, with planned expansion to rice, coffee, and cocoa across the region.
+
+## Fuji Testnet Deployment
+
+| Contract | Address | Snowtrace (Fuji) |
+|---|---|---|
+| CropRegistry | `0x8BAd899c4C70CA7245AB34f437EB69ca80ff9eBe` | [View](https://testnet.snowtrace.io/address/0x8BAd899c4C70CA7245AB34f437EB69ca80ff9eBe) |
+| WarehouseReceipt | `0x160f4bEcca5d84a58918342a7AFA6bF65b1E7eb9` | [View](https://testnet.snowtrace.io/address/0x160f4bEcca5d84a58918342a7AFA6bF65b1E7eb9) |
 
 ## Tri-Party Model
 
@@ -40,7 +72,7 @@ Two-contract design with a registry pattern:
 | Contract | Purpose |
 |---|---|
 | **CropRegistry** | Defines acceptable crop types (maize, rice, etc.) with quality thresholds. Owner-managed. Extensible — add new crops without core changes. |
-| **WarehouseReceipt** | ERC-721 token contract. Mints receipts with on-chain collateral data (qualityScore, estimatedValueUsd, quantityKg, expiry). Referenes CropRegistry for crop validation. |
+| **WarehouseReceipt** | ERC-721 token contract. Mints receipts with on-chain collateral data (qualityScore, estimatedValueUsd, quantityKg, expiry). References CropRegistry for crop validation. |
 
 ### Data Storage (Hybrid Model)
 
@@ -55,10 +87,13 @@ Two-contract design with a registry pattern:
 - **Blockchain:** Avalanche C-chain (Fuji testnet → mainnet)
 - **Smart Contracts:** Solidity ^0.8.28, OpenZeppelin Contracts 5.x (ERC-721, Ownable)
 - **Development:** Hardhat 2.x, TypeScript, Ethers.js v6
-- **Testing:** Chai, Hardhat Toolbox, loadFixture pattern
+- **Testing:** Chai, Hardhat Toolbox (43 passing tests)
+- **Frontend:** Next.js 14, wagmi v2, viem, Tailwind CSS
 - **Deployment:** Hardhat scripts with env-based configuration
 
 ## Getting Started
+
+### Smart Contracts
 
 ```bash
 npm install
@@ -66,40 +101,38 @@ npx hardhat compile
 npx hardhat test
 ```
 
-### Deploy Locally
+### Frontend Dashboard
 
 ```bash
-npx hardhat run scripts/deploy-all.ts
+cd frontend
+npm install
+npx next dev
 ```
 
-### Deploy to Fuji Testnet
-
-```bash
-export FUJI_RPC_URL=https://api.avax-test.network/ext/bc/C/rpc
-export PRIVATE_KEY=your_private_key
-npx hardhat run scripts/deploy-all.ts --network fuji
-```
+Open [http://localhost:3000](http://localhost:3000) and connect your wallet (MetaMask on Avalanche Fuji).
 
 ### Check a Receipt
 
 ```bash
-npx hardhat check-receipt --address <contract> --tokenid <id>
+npx hardhat check-receipt --address 0x160f4bEcca5d84a58918342a7AFA6bF65b1E7eb9 --tokenid 0
 ```
 
 ## Project Structure
 
 ```
 contracts/
-  CropRegistry.sol       — Crop type definitions
-  WarehouseReceipt.sol   — ERC-721 warehouse receipt token
+  CropRegistry.sol       — Crop type definitions (17 tests)
+  WarehouseReceipt.sol   — ERC-721 warehouse receipt token (22 tests)
 test/
-  CropRegistry.test.ts   — 17 unit tests
-  WarehouseReceipt.test.ts — 22 unit tests
-  Integration.test.ts    — 4 integration tests
+  Integration.test.ts    — Tri-party flow integration tests (4 tests)
 scripts/
   deploy-all.ts          — Full deployment pipeline
-  deploy-crop-registry.ts
-  deploy-warehouse-receipt.ts
+frontend/
+  src/
+    app/                 — Next.js dashboard with role-based views
+    config/contracts.ts  — Contract addresses + ABIs (swap for new network)
+    hooks/               — useWarehouseReceipt, useCropRegistry, useRole
+    components/          — LoginButton, ReceiptCard, StatusBadge
 docs/
   2026-07-02-warehouse-receipt-design.md — Design specification
 ```
@@ -107,8 +140,14 @@ docs/
 ## Roadmap
 
 - [x] v1 MVP: CropRegistry + WarehouseReceipt with tri-party roles
-- [ ] Add Avalanche C-chain mainnet deployment config
+- [x] Fuji testnet deployment
+- [x] Frontend dashboard (mock data, role detection)
+- [ ] Avalanche C-chain mainnet deployment
 - [ ] On-chain price oracle integration
 - [ ] Lending pool / loan origination contract
 - [ ] Mobile-friendly farmer dashboard
 - [ ] Multi-commodity expansion (rice, coffee, cocoa)
+
+---
+
+*Built for the Avalanche ecosystem. Empowering smallholder farmers through decentralized collateral verification.*
