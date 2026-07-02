@@ -19,13 +19,17 @@ contract CropRegistry is Ownable {
 
     constructor() Ownable(msg.sender) {}
 
+    function _cropExists(bytes32 cropType) internal view returns (bool) {
+        return bytes(cropDefinitions[cropType].name).length > 0;
+    }
+
     function registerCrop(
         bytes32 cropType,
         string calldata name,
         string[] calldata metricKeys,
         uint256 minQualityScore
     ) external onlyOwner {
-        require(cropDefinitions[cropType].active == false, "Crop already registered");
+        require(!_cropExists(cropType), "Crop already registered");
         require(bytes(name).length > 0, "Name cannot be empty");
 
         cropDefinitions[cropType] = CropDefinition({
@@ -46,7 +50,7 @@ contract CropRegistry is Ownable {
         uint256 minQualityScore,
         bool active
     ) external onlyOwner {
-        require(cropDefinitions[cropType].active != false || active == true, "Crop not found");
+        require(_cropExists(cropType), "Crop not found");
 
         cropDefinitions[cropType] = CropDefinition({
             name: name,
@@ -59,7 +63,7 @@ contract CropRegistry is Ownable {
     }
 
     function setCropActive(bytes32 cropType, bool active) external onlyOwner {
-        require(cropDefinitions[cropType].active != false || active == true, "Crop not found");
+        require(_cropExists(cropType), "Crop not found");
         cropDefinitions[cropType].active = active;
         emit CropUpdated(cropType, active);
     }
@@ -69,7 +73,7 @@ contract CropRegistry is Ownable {
     }
 
     function getCropDefinition(bytes32 cropType) external view returns (CropDefinition memory) {
-        require(cropDefinitions[cropType].active != false || bytes(cropDefinitions[cropType].name).length > 0, "Crop not found");
+        require(_cropExists(cropType), "Crop not found");
         return cropDefinitions[cropType];
     }
 

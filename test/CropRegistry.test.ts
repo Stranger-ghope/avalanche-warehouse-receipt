@@ -92,4 +92,69 @@ describe("CropRegistry", function () {
     expect(await registry.getCropAt(0)).to.equal(MAIZE);
     expect(await registry.getCropAt(1)).to.equal(RICE);
   });
+
+  it("should get crop definition for inactive crop", async function () {
+    const { registry } = await loadFixture(deployFixture);
+    await registry.registerCrop(MAIZE, "Maize", ["moisture_content"], 50);
+    await registry.setCropActive(MAIZE, false);
+    const def = await registry.getCropDefinition(MAIZE);
+    expect(def.name).to.equal("Maize");
+    expect(def.active).to.be.false;
+  });
+
+  it("should update an inactive crop while keeping it inactive", async function () {
+    const { registry } = await loadFixture(deployFixture);
+    await registry.registerCrop(MAIZE, "Maize", ["moisture_content"], 50);
+    await registry.setCropActive(MAIZE, false);
+    await registry.updateCrop(
+      MAIZE, "Maize Premium", ["moisture_content", "grade"], 70, false
+    );
+    const def = await registry.getCropDefinition(MAIZE);
+    expect(def.name).to.equal("Maize Premium");
+    expect(def.active).to.be.false;
+  });
+
+  it("should re-activate a deactivated crop", async function () {
+    const { registry } = await loadFixture(deployFixture);
+    await registry.registerCrop(MAIZE, "Maize", [], 50);
+    await registry.setCropActive(MAIZE, false);
+    await registry.setCropActive(MAIZE, true);
+    expect(await registry.isCropActive(MAIZE)).to.be.true;
+  });
+
+  it("should revert setCropActive by non-owner", async function () {
+    const { registry, other } = await loadFixture(deployFixture);
+    await registry.registerCrop(MAIZE, "Maize", [], 50);
+    await expect(
+      registry.connect(other).setCropActive(MAIZE, false)
+    ).to.be.revertedWithCustomError(registry, "OwnableUnauthorizedAccount");
+  });
+
+  it("should revert getCropAt for out-of-bounds index", async function () {
+    const { registry } = await loadFixture(deployFixture);
+    await expect(
+      registry.getCropAt(0)
+    ).to.be.revertedWith("Index out of bounds");
+  });
+
+  it("should revert updateCrop for unregistered crop", async function () {
+    const { registry } = await loadFixture(deployFixture);
+    await expect(
+      registry.updateCrop(MAIZE, "Maize", [], 50, true)
+    ).to.be.revertedWith("Crop not found");
+  });
+
+  it("should revert setCropActive for unregistered crop", async function () {
+    const { registry } = await loadFixture(deployFixture);
+    await expect(
+      registry.setCropActive(MAIZE, false)
+    ).to.be.revertedWith("Crop not found");
+  });
+
+  it("should not register crop with empty name", async function () {
+    const { registry } = await loadFixture(deployFixture);
+    await expect(
+      registry.registerCrop(MAIZE, "", [], 50)
+    ).to.be.revertedWith("Name cannot be empty");
+  });
 });
