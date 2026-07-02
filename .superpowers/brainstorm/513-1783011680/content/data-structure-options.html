@@ -1,0 +1,139 @@
+<h2>WarehouseReceipt Token — Data Structure Design</h2>
+<p class="subtitle">Three approaches for the flexible metadata layer</p>
+
+<div class="section">
+  <h3>Core Receipt (shared across all crops)</h3>
+  <div class="mockup" style="margin-bottom: 20px;">
+    <pre style="font-size: 14px; line-height: 1.6; text-align: left;">
+struct WarehouseReceipt {
+    uint256       id;              // Unique token ID
+    address       farmer;          // Asset Owner
+    address       warehouseAgent;  // Verified Verifier
+    address       mfi;             // Lender (MFI)
+    uint256       quantityKg;      // Harvest volume (kg)
+    uint256       expiryDate;      // Collateral expiry
+    bytes32       warehouseId;     // Physical storage location
+    ReceiptStatus status;          // Issued → Active → Claimed / Defaulted
+    string        metadataUri;     // Crop-specific data (off-chain or on-chain)
+}
+    </pre>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Option A: Off-Chain Metadata (IPFS/URL)</h3>
+  <div class="pros-cons">
+    <div class="pros">
+      <h4>Pros</h4>
+      <ul>
+        <li>Cheapest gas — tiny struct</li>
+        <li>Unlimited data per crop type</li>
+        <li>Easy to add new crops (off-chain schema)</li>
+      </ul>
+    </div>
+    <div class="cons">
+      <h4>Cons</h4>
+      <ul>
+        <li>MFI must fetch off-chain data</li>
+        <li>Data could be unavailable</li>
+        <li>Need external oracle for on-chain verification</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Option B: On-Chain Mappings</h3>
+  <div class="mockup" style="margin-bottom: 20px;">
+    <pre style="font-size: 14px; line-height: 1.6; text-align: left;">
+// Crop registry — add new crops without touching core contract
+mapping(bytes32 => CropDefinition) public cropDefinitions;
+
+struct CropDefinition {
+    string   name;
+    string[] metricKeys;        // e.g. ["moisture_content", "grade", "defect_rate"]
+    uint256  minAcceptableValue;
+}
+
+// Per-token metrics stored on-chain
+mapping(uint256 => mapping(bytes32 => uint256)) public cropMetrics;
+    </pre>
+  </div>
+  <div class="pros-cons">
+    <div class="pros">
+      <h4>Pros</h4>
+      <ul>
+        <li>Everything on-chain — MFI reads directly</li>
+        <li>Crop definitions are contract-enforced</li>
+        <li>No external dependencies</li>
+      </ul>
+    </div>
+    <div class="cons">
+      <h4>Cons</h4>
+      <ul>
+        <li>Higher gas for deployment + each metric write</li>
+        <li>Rigid — adding crop types costs gas</li>
+        <li>Each metric is same type (uint256), limits flexibility</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Option C: Hybrid — On-Chain Summary + Off-Chain Detail</h3>
+  <div class="mockup" style="margin-bottom: 20px;">
+    <pre style="font-size: 14px; line-height: 1.6; text-align: left;">
+// On-chain: just the essentials for the MFI to assess
+struct CropSummary {
+    bytes32 cropType;            // hash of "MAIZE"
+    uint256 estimatedValueUsd;   // computed by warehouse agent
+    uint256 qualityScore;        // 0-100 composite (grade + moisture)
+    string  metadataUri;         // IPFS: full inspection report
+}
+    </pre>
+  </div>
+  <div class="pros-cons">
+    <div class="pros">
+      <h4>Pros</h4>
+      <ul>
+        <li>Key value metrics on-chain for MFI</li>
+        <li>Full inspection report off-chain</li>
+        <li>Balances gas cost with verifiability</li>
+      </ul>
+    </div>
+    <div class="cons">
+      <h4>Cons</h4>
+      <ul>
+        <li>Two data sources to maintain</li>
+        <li>EstimatedValueUsd must be trusted (or oracle-backed)</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <p style="text-align: center;"><strong>Which metadata approach fits your tri-party model best?</strong></p>
+  <div class="options">
+    <div class="option" data-choice="a" onclick="toggleSelect(this)">
+      <div class="letter">A</div>
+      <div class="content">
+        <h3>Off-Chain Only (IPFS)</h3>
+        <p>Minimal on-chain struct. MFI fetches details from IPFS. Requires off-chain trust.</p>
+      </div>
+    </div>
+    <div class="option" data-choice="b" onclick="toggleSelect(this)">
+      <div class="letter">B</div>
+      <div class="content">
+        <h3>Full On-Chain Mappings</h3>
+        <p>Everything on-chain. Crop registry contract for extensibility. Highest verifiability.</p>
+      </div>
+    </div>
+    <div class="option" data-choice="c" onclick="toggleSelect(this)">
+      <div class="letter">C</div>
+      <div class="content">
+        <h3>Hybrid (Recommended)</h3>
+        <p>On-chain value summary + IPFS detail. Best balance for MFI lending decisions.</p>
+      </div>
+    </div>
+  </div>
+</div>
