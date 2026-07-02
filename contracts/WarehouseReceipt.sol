@@ -92,6 +92,7 @@ contract WarehouseReceipt is ERC721, Ownable {
         require(quantityKg > 0, "WHR: quantity must be > 0");
         require(expiryDate > block.timestamp, "WHR: expiry must be in the future");
         require(cropRegistry.isCropActive(cropType), "WHR: crop not active");
+        require(qualityScore <= 100, "WHR: quality score out of range");
 
         uint256 tokenId = _nextTokenId;
         _nextTokenId++;
@@ -116,14 +117,13 @@ contract WarehouseReceipt is ERC721, Ownable {
         return tokenId;
     }
 
-    function activateReceipt(uint256 tokenId, address mfi) external onlyApprovedMFI {
+    function activateReceipt(uint256 tokenId) external onlyApprovedMFI {
         WarehouseReceiptData storage receipt = _receipts[tokenId];
         require(receipt.status == ReceiptStatus.Issued, "WHR: receipt not in Issued status");
         require(block.timestamp <= receipt.expiryDate, "WHR: receipt expired");
-        require(mfi != address(0), "WHR: invalid MFI address");
 
         receipt.status = ReceiptStatus.Active;
-        receipt.mfi = mfi;
+        receipt.mfi = msg.sender;
 
         emit ReceiptStatusUpdated(tokenId, ReceiptStatus.Active);
     }
@@ -158,5 +158,13 @@ contract WarehouseReceipt is ERC721, Ownable {
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         require(_ownerOf(tokenId) != address(0), "WHR: token does not exist");
         return _receipts[tokenId].metadataUri;
+    }
+
+    function _update(address to, uint256 tokenId, address auth) internal virtual override returns (address) {
+        address from = _ownerOf(tokenId);
+        if (from != address(0) && to != address(0)) {
+            require(_receipts[tokenId].status != ReceiptStatus.Active, "WHR: cannot transfer active receipt");
+        }
+        return super._update(to, tokenId, auth);
     }
 }

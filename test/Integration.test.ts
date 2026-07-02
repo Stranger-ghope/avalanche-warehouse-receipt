@@ -48,11 +48,11 @@ describe("Integration: Full Tri-Party Flow", function () {
 
     // A non-MFI cannot activate
     await expect(
-      receipt.connect(agent).activateReceipt(0, mfi.address)
+      receipt.connect(agent).activateReceipt(0)
     ).to.be.revertedWith("WHR: caller is not an approved MFI");
 
     // 2. MFI activates the receipt — commits to lending
-    const activateTx = await receipt.connect(mfi).activateReceipt(0, mfi.address);
+    const activateTx = await receipt.connect(mfi).activateReceipt(0);
     await expect(activateTx).to.emit(receipt, "ReceiptStatusUpdated").withArgs(0, 1);
 
     const activeReceipt = await receipt.getReceipt(0);
@@ -81,7 +81,7 @@ describe("Integration: Full Tri-Party Flow", function () {
       ethers.encodeBytes32String("WH-002"),
       MAIZE, 75000, 70, "ipfs://QmInspection456"
     );
-    await receipt.connect(mfi).activateReceipt(0, mfi.address);
+    await receipt.connect(mfi).activateReceipt(0);
     await receipt.connect(mfi).markDefaulted(0);
 
     const data = await receipt.getReceipt(0);
@@ -139,7 +139,7 @@ describe("Integration: Full Tri-Party Flow", function () {
     await ethers.provider.send("evm_mine", []);
 
     await expect(
-      receipt.connect(mfi).activateReceipt(0, mfi.address)
+      receipt.connect(mfi).activateReceipt(0)
     ).to.be.revertedWith("WHR: receipt expired");
   });
 });

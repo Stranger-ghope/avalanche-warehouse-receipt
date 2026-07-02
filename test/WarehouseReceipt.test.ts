@@ -128,7 +128,7 @@ describe("WarehouseReceipt", function () {
       MAIZE, 50000, 75, "ipfs://QmTest"
     );
 
-    const tx = await receipt.connect(mfi).activateReceipt(0, mfi.address);
+    const tx = await receipt.connect(mfi).activateReceipt(0);
     await expect(tx).to.emit(receipt, "ReceiptStatusUpdated").withArgs(0, Status.Active);
 
     const data = await receipt.getReceipt(0);
@@ -144,7 +144,7 @@ describe("WarehouseReceipt", function () {
       ethers.encodeBytes32String("WH-001"),
       MAIZE, 50000, 75, "ipfs://QmTest"
     );
-    await receipt.connect(mfi).activateReceipt(0, mfi.address);
+    await receipt.connect(mfi).activateReceipt(0);
 
     const tx = await receipt.connect(mfi).markClaimed(0);
     await expect(tx).to.emit(receipt, "ReceiptStatusUpdated").withArgs(0, Status.Claimed);
@@ -158,7 +158,7 @@ describe("WarehouseReceipt", function () {
       ethers.encodeBytes32String("WH-001"),
       MAIZE, 50000, 75, "ipfs://QmTest"
     );
-    await receipt.connect(mfi).activateReceipt(0, mfi.address);
+    await receipt.connect(mfi).activateReceipt(0);
 
     const tx = await receipt.connect(mfi).markDefaulted(0);
     await expect(tx).to.emit(receipt, "ReceiptStatusUpdated").withArgs(0, Status.Defaulted);
@@ -228,7 +228,7 @@ describe("WarehouseReceipt", function () {
       MAIZE, 50000, 75, "ipfs://QmTest"
     );
     await expect(
-      receipt.connect(agent).activateReceipt(0, agent.address)
+      receipt.connect(agent).activateReceipt(0)
     ).to.be.revertedWith("WHR: caller is not an approved MFI");
   });
 
@@ -270,5 +270,51 @@ describe("WarehouseReceipt", function () {
     await expect(
       receipt.connect(other).removeWarehouseAgent(agent.address)
     ).to.be.revertedWithCustomError(receipt, "OwnableUnauthorizedAccount");
+  });
+
+  it("should not issue receipt with quality score over 100", async function () {
+    const { receipt, agent, farmer, MAIZE } = await loadFixture(deployFixture);
+    const expiry = Math.floor(Date.now() / 1000) + 86400 * 30;
+    await expect(
+      receipt.connect(agent).issueReceipt(
+        farmer.address, 1000, expiry,
+        ethers.encodeBytes32String("WH-001"),
+        MAIZE, 50000, 101, "ipfs://QmTest"
+      )
+    ).to.be.revertedWith("WHR: quality score out of range");
+  });
+
+  it("should not transfer an active receipt", async function () {
+    const { receipt, agent, mfi, farmer, other, MAIZE } = await loadFixture(deployFixture);
+    const expiry = Math.floor(Date.now() / 1000) + 86400 * 30;
+    await receipt.connect(agent).issueReceipt(
+      farmer.address, 1000, expiry,
+      ethers.encodeBytes32String("WH-001"),
+      MAIZE, 50000, 75, "ipfs://QmTest"
+    );
+    await receipt.connect(mfi).activateReceipt(0);
+
+    // Farmer should not be able to transfer while Active
+    await expect(
+      receipt.connect(farmer).transferFrom(farmer.address, other.address, 0)
+    ).to.be.revertedWith("WHR: cannot transfer active receipt");
+  });
+
+  it("should allow transfer of a non-active receipt", async function () {
+    const { receipt, agent, mfi, farmer, other, MAIZE } = await loadFixture(deployFixture);
+    const expiry = Math.floor(Date.now() / 1000) + 86400 * 30;
+    await receipt.connect(agent).issueReceipt(
+      farmer.address, 1000, expiry,
+      ethers.encodeBytes32String("WH-001"),
+      MAIZE, 50000, 75, "ipfs://QmTest"
+    );
+    await receipt.connect(mfi).activateReceipt(0);
+    await receipt.connect(mfi).markClaimed(0);
+
+    // Should allow transfer after claimed
+    await expect(
+      receipt.connect(farmer).transferFrom(farmer.address, other.address, 0)
+    ).to.not.be.reverted;
+    expect(await receipt.ownerOf(0)).to.equal(other.address);
   });
 });
