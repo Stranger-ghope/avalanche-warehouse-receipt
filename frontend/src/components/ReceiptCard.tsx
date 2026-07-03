@@ -26,7 +26,7 @@ function formatDate(ts: bigint): string {
 }
 
 function formatUsd(val: bigint): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(val));
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(val) / 1_000_000);
 }
 
 export function ReceiptCard({ receipt, cropName: propCropName }: { receipt: ReceiptData; cropName?: string }) {

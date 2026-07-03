@@ -127,7 +127,7 @@ function LoanCardById({ tokenId, role }: { tokenId: number; role: string }) {
 
 // ─── Issue Receipt Form (Agent) ───────────────────────────────
 
-const CROP_BYTES32 = "0x9a5e3d4c0a7d3f6b8e2c1a9b4d7e3f5c8a2b6d4e1f7a3c9b8e2d5f0a1b3c7d9";
+const CROP_BYTES32 = "0x3ce99a310939eb07482918d72156c761c02af23e235ffdecff9fb8499f891089";
 
 function IssueReceiptForm({ onIssued }: { onIssued: () => void }) {
   const { writeContract } = useWriteContract();
@@ -236,21 +236,22 @@ function YieldSection({ address }: { address: `0x${string}` }) {
   const handleDeposit = () => {
     if (!amount || parseFloat(amount) <= 0) return;
     const depositAmount = BigInt(Math.round(parseFloat(amount) * 1_000_000));
-
-    if (!allowance || allowance < depositAmount) {
-      writeContract({
-        address: MOCK_USDC_ADDRESS,
-        abi: MOCK_USDC_ABI,
-        functionName: "approve",
-        args: [YIELD_VAULT_ADDRESS, depositAmount],
-      });
-    }
-
     writeContract({
       address: YIELD_VAULT_ADDRESS,
       abi: YIELD_VAULT_ABI,
       functionName: "deposit",
       args: [depositAmount],
+    });
+  };
+
+  const handleApprove = () => {
+    if (!amount || parseFloat(amount) <= 0) return;
+    const depositAmount = BigInt(Math.round(parseFloat(amount) * 1_000_000));
+    writeContract({
+      address: MOCK_USDC_ADDRESS,
+      abi: MOCK_USDC_ABI,
+      functionName: "approve",
+      args: [YIELD_VAULT_ADDRESS, depositAmount],
     });
   };
 
@@ -293,12 +294,17 @@ function YieldSection({ address }: { address: `0x${string}` }) {
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
         />
-        <button
-          onClick={handleDeposit}
-          className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition"
-        >
-          Deposit
-        </button>
+        {!allowance || (amount && allowance < BigInt(Math.round(parseFloat(amount) * 1_000_000))) ? (
+          <button onClick={handleApprove}
+            className="px-4 py-2 bg-yellow-600 text-white text-sm rounded-lg hover:bg-yellow-700 transition">
+            Approve USDC
+          </button>
+        ) : (
+          <button onClick={handleDeposit}
+            className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition">
+            Deposit
+          </button>
+        )}
         <button
           onClick={handleWithdraw}
           className="px-4 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition"

@@ -6,10 +6,10 @@ import { useVaultTotalAssets, useVaultApy } from "@/hooks/useYieldVault";
 
 function formatUsd(val: bigint | undefined): string {
   if (val === undefined) return "—";
-  // USDC has 6 decimals
   const formatted = Number(val) / 1_000_000;
   if (formatted >= 1000) return "$" + (formatted / 1000).toFixed(1) + "K";
-  return "$" + formatted.toFixed(0);
+  if (formatted >= 1) return "$" + formatted.toFixed(2);
+  return "$" + formatted.toFixed(4);
 }
 
 function StatCard({ label, value, suffix }: { label: string; value: string; suffix?: string }) {
