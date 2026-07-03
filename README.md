@@ -14,7 +14,7 @@
     <img src="https://img.shields.io/badge/Avalanche-C--Chain-E84142?logo=avalanche" alt="Avalanche">
   </a>
   <a href="https://github.com/Stranger-ghope/avalanche-warehouse-receipt/actions">
-    <img src="https://img.shields.io/badge/tests-43%20passing-brightgreen" alt="Tests: 43 passing">
+    <img src="https://img.shields.io/badge/tests-62%20passing-brightgreen" alt="Tests: 62 passing">
   </a>
   <a href="https://nextjs.org/">
     <img src="https://img.shields.io/badge/Next.js-14-black?logo=next.js" alt="Next.js">
@@ -23,19 +23,21 @@
 
 ---
 
-Digital collateralization for smallholder cooperatives. **AgriVault** issues digital warehouse receipt tokens on Avalanche C-chain that represent verified harvest deposits, enabling local Microfinance Institutions (MFIs) to assess collateral value on-chain and approve micro-loans.
+Digital collateralization for smallholder cooperatives. **AgriVault** issues digital warehouse receipt tokens on Avalanche C-chain that represent verified harvest deposits, enabling local Microfinance Institutions (MFIs) to assess collateral value on-chain and approve micro-loans in **USDC** — bypassing Malawi's national forex shortage.
 
 ## Impact: Closing the Agricultural Collateral Gap in Malawi
 
-In rural Malawi, smallholder farmers grow 80% of the nation's food but are locked out of formal credit. Banks cite one overwhelming reason: **they cannot verify agricultural collateral.**
+In rural Malawi, smallholder farmers grow 80% of the nation's food but are locked out of formal credit. Banks cite one overwhelming reason: **they cannot verify agricultural collateral.** And even when credit is approved, a chronic **national forex shortage** means banks lack the hard currency to disburse loans.
 
-A farmer may have 2,000 kg of stored maize worth $1,000 — but to a lender four hours away, that asset is invisible. Without a trust mechanism to verify and monitor harvest value, banks default to offering 0% loan approval for unsecured smallholder credit.
+A farmer may have 2,000 kg of stored maize worth $1,000 — but to a lender four hours away, that asset is invisible. Without a trust mechanism to verify and monitor harvest value, and without a channel that bypasses the forex bottleneck, banks default to offering 0% loan approval for unsecured smallholder credit.
 
-**AgriVault bridges this gap with a tri-party trust model:**
+**AgriVault bridges both gaps with a tri-party trust model on Avalanche:**
 
 1. A **Warehouse Agent** — a trusted local cooperative officer — physically inspects and signs off on the harvest
 2. An **ERC-721 token** is minted on Avalanche C-chain, encoding verified quantity, quality score, and estimated value on-chain
-3. An **MFI Manager** reads the token data on-chain and approves a micro-loan using the receipt as collateral
+3. An **MFI Manager** reads the token data on-chain and disburses a **USDC micro-loan** via the LoanOrigination contract
+4. **Farmers** can deposit idle USDC into the YieldVault to earn yield while they manage their harvest cycle
+5. **USDC (a dollar-pegged stablecoin)** holds its value independent of Malawi's foreign reserves, enabling reliable lending without forex exposure
 
 This transforms an invisible asset into a bankable one. The pilot targets maize cooperatives in central Malawi, with planned expansion to rice, coffee, and cocoa across the region.
 
@@ -43,8 +45,11 @@ This transforms an invisible asset into a bankable one. The pilot targets maize 
 
 | Contract | Address | Snowtrace (Fuji) |
 |---|---|---|
-| CropRegistry | `0x8BAd899c4C70CA7245AB34f437EB69ca80ff9eBe` | [View](https://testnet.snowtrace.io/address/0x8BAd899c4C70CA7245AB34f437EB69ca80ff9eBe) |
-| WarehouseReceipt | `0x160f4bEcca5d84a58918342a7AFA6bF65b1E7eb9` | [View](https://testnet.snowtrace.io/address/0x160f4bEcca5d84a58918342a7AFA6bF65b1E7eb9) |
+| CropRegistry | `0x1852155e42f6780E89D1e8b991280F54DC7dF0a4` | [View](https://testnet.snowtrace.io/address/0x1852155e42f6780E89D1e8b991280F54DC7dF0a4) |
+| WarehouseReceipt | `0xC29E2b635a9721e80280a74D2F4D7CED50C9DA2f` | [View](https://testnet.snowtrace.io/address/0xC29E2b635a9721e80280a74D2F4D7CED50C9DA2f) |
+| MockUSDC | `0x197f806214B78B682D73d0d5163d693463DF7601` | [View](https://testnet.snowtrace.io/address/0x197f806214B78B682D73d0d5163d693463DF7601) |
+| LoanOrigination | `0xcCF663F53841968C11371fC28619Fff81ad8135d` | [View](https://testnet.snowtrace.io/address/0xcCF663F53841968C11371fC28619Fff81ad8135d) |
+| YieldVault | `0x40C8ceD218d89BeBC7DFfD470f82aaaD079d29eB` | [View](https://testnet.snowtrace.io/address/0x40C8ceD218d89BeBC7DFfD470f82aaaD079d29eB) |
 
 ## Tri-Party Model
 
@@ -141,10 +146,14 @@ docs/
 
 - [x] v1 MVP: CropRegistry + WarehouseReceipt with tri-party roles
 - [x] Fuji testnet deployment
-- [x] Frontend dashboard (mock data, role detection)
+- [x] MockUSDC + LoanOrigination + YieldVault contracts
+- [x] Frontend dashboard with live contract reads (no mock data)
+- [x] USDC loan origination flow (activate, repay, default)
+- [x] Yield pool with deposit/withdraw
+- [ ] Verify contracts on Snowtrace
 - [ ] Avalanche C-chain mainnet deployment
+- [ ] Real USDC integration (mainnet swap)
 - [ ] On-chain price oracle integration
-- [ ] Lending pool / loan origination contract
 - [ ] Mobile-friendly farmer dashboard
 - [ ] Multi-commodity expansion (rice, coffee, cocoa)
 

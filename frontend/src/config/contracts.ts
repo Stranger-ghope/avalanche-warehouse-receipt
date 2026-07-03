@@ -4,12 +4,11 @@
 // ============================================================
 
 export const CONTRACT_ADDRESSES = {
-  cropRegistry: "0x8BAd899c4C70CA7245AB34f437EB69ca80ff9eBe" as `0x${string}`,
-  warehouseReceipt: "0x160f4bEcca5d84a58918342a7AFA6bF65b1E7eb9" as `0x${string}`,
-  // New contracts (update after Fuji deployment):
-  mockUSDC: "0x0000000000000000000000000000000000000000" as `0x${string}`,
-  loanOrigination: "0x0000000000000000000000000000000000000000" as `0x${string}`,
-  yieldVault: "0x0000000000000000000000000000000000000000" as `0x${string}`,
+  cropRegistry: "0x1852155e42f6780E89D1e8b991280F54DC7dF0a4" as `0x${string}`,
+  warehouseReceipt: "0xC29E2b635a9721e80280a74D2F4D7CED50C9DA2f" as `0x${string}`,
+  mockUSDC: "0x197f806214B78B682D73d0d5163d693463DF7601" as `0x${string}`,
+  loanOrigination: "0xcCF663F53841968C11371fC28619Fff81ad8135d" as `0x${string}`,
+  yieldVault: "0x40C8ceD218d89BeBC7DFfD470f82aaaD079d29eB" as `0x${string}`,
 } as const;
 
 // ----- WarehouseReceipt ABI (read-only functions used by dashboard) -----
