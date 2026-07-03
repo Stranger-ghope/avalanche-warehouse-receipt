@@ -17,6 +17,21 @@ const config: HardhatUserConfig = {
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
     },
   },
+  etherscan: {
+    apiKey: {
+      avalancheFuji: "placeholder", // Routescan doesn't require an API key
+    },
+    customChains: [
+      {
+        network: "avalancheFuji",
+        chainId: 43113,
+        urls: {
+          apiURL: "https://api.routescan.io/v2/network/testnet/evm/43113/etherscan",
+          browserURL: "https://testnet.routescan.io",
+        },
+      },
+    ],
+  },
 };
 
 task("check-receipt", "Check receipt details")
