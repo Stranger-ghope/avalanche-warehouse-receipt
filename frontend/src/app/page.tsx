@@ -1,10 +1,26 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import { useAccount } from "wagmi";
 import { LoginButton } from "@/components/LoginButton";
 import { ReceiptCard } from "@/components/ReceiptCard";
+import { StatsBar } from "@/components/StatsBar";
+import { LoanCard } from "@/components/LoanCard";
 import { useRole } from "@/hooks/useRole";
-import { RECEIPT_STATUS, type ReceiptData } from "@/config/contracts";
+import { useReceipt, useTotalSupply } from "@/hooks/useWarehouseReceipt";
+import { useVaultBalance, useVaultTotalAssets, useVaultApy, YIELD_VAULT_ADDRESS } from "@/hooks/useYieldVault";
+import { MOCK_USDC_ADDRESS, useUSDCBalance, useUSDCAllowance } from "@/hooks/useMockUSDC";
+import {
+  WAREHOUSE_RECEIPT_WRITE_ABI,
+  CONTRACT_ADDRESSES,
+  YIELD_VAULT_ABI,
+  MOCK_USDC_ABI,
+  type ReceiptData,
+} from "@/config/contracts";
+import { useWriteContract } from "wagmi";
+import { useQueryClient } from "@tanstack/react-query";
+
+// ─── Navbar ──────────────────────────────────────────────────
 
 function Navbar() {
   return (
@@ -20,81 +36,29 @@ function Navbar() {
   );
 }
 
-const MOCK_RECEIPTS: ReceiptData[] = [
-  {
-    tokenId: 1,
-    farmer: "0x1234567890abcdef1234567890abcdef12345678",
-    warehouseAgent: "0x2222222222222222222222222222222222222222",
-    mfi: "0x0000000000000000000000000000000000000000",
-    quantityKg: 2000n,
-    expiryDate: BigInt(Math.floor(Date.now() / 1000) + 86400 * 60),
-    warehouseId: "0x57482d3030310000000000000000000000000000000000000000000000000000",
-    status: RECEIPT_STATUS.Issued,
-    cropType: "0x9a5e3d4c0a7d3f6b8e2c1a9b4d7e3f5c8a2b6d4e1f7a3c9b8e2d5f0a1b3c7d9",
-    estimatedValueUsd: 100000n,
-    qualityScore: 82n,
-    metadataUri: "ipfs://QmTest",
-  },
-  {
-    tokenId: 2,
-    farmer: "0x1234567890abcdef1234567890abcdef12345678",
-    warehouseAgent: "0x2222222222222222222222222222222222222222",
-    mfi: "0x3333333333333333333333333333333333333333",
-    quantityKg: 5000n,
-    expiryDate: BigInt(Math.floor(Date.now() / 1000) + 86400 * 45),
-    warehouseId: "0x57482d3030320000000000000000000000000000000000000000000000000000",
-    status: RECEIPT_STATUS.Active,
-    cropType: "0x9a5e3d4c0a7d3f6b8e2c1a9b4d7e3f5c8a2b6d4e1f7a3c9b8e2d5f0a1b3c7d9",
-    estimatedValueUsd: 250000n,
-    qualityScore: 90n,
-    metadataUri: "ipfs://QmTest2",
-  },
-  {
-    tokenId: 3,
-    farmer: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    warehouseAgent: "0x2222222222222222222222222222222222222222",
-    mfi: "0x0000000000000000000000000000000000000000",
-    quantityKg: 1500n,
-    expiryDate: BigInt(Math.floor(Date.now() / 1000) + 86400 * 30),
-    warehouseId: "0x57482d3030330000000000000000000000000000000000000000000000000000",
-    status: RECEIPT_STATUS.Issued,
-    cropType: "0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2",
-    estimatedValueUsd: 75000n,
-    qualityScore: 70n,
-    metadataUri: "ipfs://QmTest3",
-  },
-];
-
-const MOCK_CROP_NAMES: Record<string, string> = {
-  "0x9a5e3d4c0a7d3f6b8e2c1a9b4d7e3f5c8a2b6d4e1f7a3c9b8e2d5f0a1b3c7d9": "Maize",
-  "0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2": "Rice",
-};
-
-function getCropName(cropType: `0x${string}`): string {
-  return MOCK_CROP_NAMES[cropType] ?? cropType.slice(0, 10);
-}
+// ─── Role Banner ─────────────────────────────────────────────
 
 function RoleBanner({ role }: { role: string }) {
   const banners: Record<string, { emoji: string; title: string; desc: string }> = {
     agent: {
-      emoji: "🏛️",
+      emoji: "\u{1F3DB}️",
       title: "Warehouse Agent",
-      desc: "You are authorized to inspect deposits and issue warehouse receipts.",
+      desc: "Inspect deposits and issue warehouse receipts to farmers.",
     },
     mfi: {
-      emoji: "🏦",
+      emoji: "\u{1F3E6}",
       title: "MFI Manager",
-      desc: "You can activate, claim, and default receipts for loan management.",
+      desc: "Activate loans, monitor repayments, and manage risk.",
     },
     farmer: {
-      emoji: "🌾",
+      emoji: "\u{1F33E}",
       title: "Farmer",
-      desc: "Your wallet holds warehouse receipt tokens. Use them as collateral.",
+      desc: "Your receipts serve as on-chain collateral for USDC loans.",
     },
     unverified: {
-      emoji: "👤",
+      emoji: "\u{1F464}",
       title: "Unverified",
-      desc: "Connect your wallet and register as a participant to get started.",
+      desc: "Connect your wallet and register as a participant.",
     },
   };
   const b = banners[role] ?? banners.unverified;
@@ -108,6 +72,8 @@ function RoleBanner({ role }: { role: string }) {
     </div>
   );
 }
+
+// ─── Section / Empty State / Skeleton ────────────────────────
 
 function SectionCard({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
   return (
@@ -129,48 +95,230 @@ function EmptyState({ message }: { message: string }) {
   );
 }
 
-function AgentSection({ receipts }: { receipts: ReceiptData[] }) {
-  const unverified = receipts.filter((r) => r.status === RECEIPT_STATUS.Issued);
+function SkeletonCard() {
   return (
-    <SectionCard title="Unverified Deposits" count={unverified.length}>
-      {unverified.length === 0 ? (
-        <EmptyState message="No pending deposits to verify." />
-      ) : (
-        unverified.map((r) => <ReceiptCard key={r.tokenId} receipt={r} />)
-      )}
-    </SectionCard>
+    <div className="border border-gray-200 rounded-xl p-4 bg-white animate-pulse">
+      <div className="h-4 bg-gray-200 rounded w-1/3 mb-3" />
+      <div className="h-3 bg-gray-200 rounded w-1/2 mb-2" />
+      <div className="h-3 bg-gray-200 rounded w-2/3 mb-2" />
+      <div className="h-3 bg-gray-200 rounded w-1/2" />
+    </div>
   );
 }
 
-function MfiSection({ receipts }: { receipts: ReceiptData[] }) {
-  const pending = receipts.filter((r) => r.status === RECEIPT_STATUS.Issued);
+// ─── ReceiptById (wraps ReceiptCard with live data fetch) ─────
+
+function ReceiptById({ tokenId }: { tokenId: number }) {
+  const { data, isLoading, isError } = useReceipt(tokenId);
+  if (isLoading) return <SkeletonCard />;
+  if (isError || !data) return null;
+  const receipt: ReceiptData = { ...(data as Omit<ReceiptData, "tokenId">), tokenId };
+  return <ReceiptCard receipt={receipt} />;
+}
+
+// ─── LoanCardById (wraps LoanCard with live data fetch) ──────
+
+function LoanCardById({ tokenId, role }: { tokenId: number; role: string }) {
+  const { data, isLoading, isError } = useReceipt(tokenId);
+  if (isLoading || isError || !data) return null;
+  const receipt: ReceiptData = { ...(data as Omit<ReceiptData, "tokenId">), tokenId };
+  return <LoanCard receipt={receipt} role={role} />;
+}
+
+// ─── Issue Receipt Form (Agent) ───────────────────────────────
+
+const CROP_BYTES32 = "0x9a5e3d4c0a7d3f6b8e2c1a9b4d7e3f5c8a2b6d4e1f7a3c9b8e2d5f0a1b3c7d9";
+
+function IssueReceiptForm({ onIssued }: { onIssued: () => void }) {
+  const { writeContract } = useWriteContract();
+  const queryClient = useQueryClient();
+  const [farmer, setFarmer] = useState("");
+  const [quantityKg, setQuantityKg] = useState("");
+  const [estValue, setEstValue] = useState("");
+  const [quality, setQuality] = useState("75");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = useCallback(async () => {
+    if (!farmer || !quantityKg || !estValue) return;
+    setIsSubmitting(true);
+    const expiry = Math.floor(Date.now() / 1000) + 86400 * 60;
+    // Build a warehouseId bytes32 from current timestamp
+    const ts = Date.now().toString(16).padStart(2, "0");
+    const warehouseId = ("0x" + ts.padEnd(64, "0")) as `0x${string}`;
+
+    writeContract({
+      address: CONTRACT_ADDRESSES.warehouseReceipt,
+      abi: WAREHOUSE_RECEIPT_WRITE_ABI,
+      functionName: "issueReceipt",
+      args: [
+        farmer as `0x${string}`,
+        BigInt(quantityKg),
+        BigInt(expiry),
+        warehouseId,
+        CROP_BYTES32 as `0x${string}`,
+        BigInt(Math.round(parseFloat(estValue) * 1_000_000)),
+        BigInt(quality),
+        "ipfs://QmPlaceholder",
+      ],
+    });
+    setTimeout(() => {
+      setFarmer("");
+      setQuantityKg("");
+      setEstValue("");
+      setQuality("75");
+      setIsSubmitting(false);
+      queryClient.invalidateQueries();
+      onIssued();
+    }, 2000);
+  }, [farmer, quantityKg, estValue, quality, writeContract, queryClient, onIssued]);
+
   return (
-    <SectionCard title="Pending Loan Approvals" count={pending.length}>
-      {pending.length === 0 ? (
-        <EmptyState message="No pending loan approvals." />
-      ) : (
-        pending.map((r) => <ReceiptCard key={r.tokenId} receipt={r} />)
-      )}
-    </SectionCard>
+    <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
+      <h3 className="font-semibold text-gray-900">Issue New Receipt</h3>
+      <div className="grid grid-cols-2 gap-3">
+        <input
+          className="col-span-2 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          placeholder="Farmer Address (0x...)"
+          value={farmer}
+          onChange={(e) => setFarmer(e.target.value)}
+        />
+        <input
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          placeholder="Quantity (kg)"
+          type="number"
+          value={quantityKg}
+          onChange={(e) => setQuantityKg(e.target.value)}
+        />
+        <input
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          placeholder="Est. Value (USD)"
+          type="number"
+          value={estValue}
+          onChange={(e) => setEstValue(e.target.value)}
+        />
+        <input
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          placeholder="Quality Score (0-100)"
+          type="number"
+          min={0}
+          max={100}
+          value={quality}
+          onChange={(e) => setQuality(e.target.value)}
+        />
+      </div>
+      <button
+        onClick={handleSubmit}
+        disabled={isSubmitting || !farmer || !quantityKg || !estValue}
+        className="w-full px-4 py-2 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 transition disabled:opacity-50 text-sm"
+      >
+        {isSubmitting ? "Submitting..." : "Issue Receipt"}
+      </button>
+    </div>
   );
 }
 
-function FarmerSection({ receipts }: { receipts: ReceiptData[] }) {
+// ─── Yield Pool Section ──────────────────────────────────────
+
+function YieldSection({ address }: { address: `0x${string}` }) {
+  const { writeContract } = useWriteContract();
+  const { data: userBalance } = useVaultBalance(address);
+  const { data: totalAssets } = useVaultTotalAssets();
+  const { data: apyBps } = useVaultApy();
+  const { data: usdcBalance } = useUSDCBalance(address);
+  const { data: allowance } = useUSDCAllowance(address, YIELD_VAULT_ADDRESS);
+  const [amount, setAmount] = useState("");
+
+  const apyPct = apyBps !== undefined ? (Number(apyBps) / 100).toFixed(1) : "—";
+  const userBal = userBalance ? (Number(userBalance) / 1_000_000).toFixed(2) : "0.00";
+  const totalBal = totalAssets ? (Number(totalAssets) / 1_000_000).toFixed(2) : "0.00";
+  const walletBal = usdcBalance ? (Number(usdcBalance) / 1_000_000).toFixed(2) : "0.00";
+
+  const handleDeposit = () => {
+    if (!amount || parseFloat(amount) <= 0) return;
+    const depositAmount = BigInt(Math.round(parseFloat(amount) * 1_000_000));
+
+    if (!allowance || allowance < depositAmount) {
+      writeContract({
+        address: MOCK_USDC_ADDRESS,
+        abi: MOCK_USDC_ABI,
+        functionName: "approve",
+        args: [YIELD_VAULT_ADDRESS, depositAmount],
+      });
+    }
+
+    writeContract({
+      address: YIELD_VAULT_ADDRESS,
+      abi: YIELD_VAULT_ABI,
+      functionName: "deposit",
+      args: [depositAmount],
+    });
+  };
+
+  const handleWithdraw = () => {
+    if (!amount || parseFloat(amount) <= 0) return;
+    const withdrawAmount = BigInt(Math.round(parseFloat(amount) * 1_000_000));
+    writeContract({
+      address: YIELD_VAULT_ADDRESS,
+      abi: YIELD_VAULT_ABI,
+      functionName: "withdraw",
+      args: [withdrawAmount],
+    });
+  };
+
   return (
-    <SectionCard title="My Receipts" count={receipts.length}>
-      {receipts.length === 0 ? (
-        <EmptyState message="No receipts in your wallet." />
-      ) : (
-        receipts.map((r) => <ReceiptCard key={r.tokenId} receipt={r} />)
-      )}
-    </SectionCard>
+    <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-gray-900">Yield Pool</h3>
+        <span className="text-sm text-emerald-600 font-medium">{apyPct}% APY</span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 text-sm">
+        <div className="bg-gray-50 rounded-lg p-3">
+          <p className="text-gray-500">Pool</p>
+          <p className="text-lg font-semibold text-gray-900">{totalBal} USDC</p>
+        </div>
+        <div className="bg-gray-50 rounded-lg p-3">
+          <p className="text-gray-500">Your Deposit</p>
+          <p className="text-lg font-semibold text-gray-900">{userBal} USDC</p>
+        </div>
+      </div>
+
+      <p className="text-xs text-gray-400">Wallet: {walletBal} USDC</p>
+
+      <div className="flex gap-2">
+        <input
+          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          placeholder="Amount (USDC)"
+          type="number"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+        />
+        <button
+          onClick={handleDeposit}
+          className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition"
+        >
+          Deposit
+        </button>
+        <button
+          onClick={handleWithdraw}
+          className="px-4 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition"
+        >
+          Withdraw
+        </button>
+      </div>
+    </div>
   );
 }
+
+// ─── Main Dashboard ──────────────────────────────────────────
 
 export default function Dashboard() {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
   const { role, isLoading } = useRole();
-  const allReceipts = MOCK_RECEIPTS;
+  const { data: totalSupply } = useTotalSupply();
+
+  const supplyCount = Number(totalSupply ?? 0);
+  const tokenIds = Array.from({ length: supplyCount }, (_, i) => i);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -180,7 +328,8 @@ export default function Dashboard() {
           <div className="text-center py-24">
             <h1 className="text-4xl font-bold text-gray-900 mb-3">AgriVault</h1>
             <p className="text-gray-500 mb-8 max-w-md mx-auto">
-              Digital warehouse receipts on Avalanche. Connect your wallet to manage collateral, verify deposits, and approve loans.
+              Digital warehouse receipts on Avalanche. Bypassing Malawi&apos;s forex shortage with
+              stablecoin-collateralized micro-loans for smallholder farmers.
             </p>
             <LoginButton />
           </div>
@@ -189,9 +338,53 @@ export default function Dashboard() {
         ) : (
           <>
             <RoleBanner role={role} />
-            <FarmerSection receipts={allReceipts} />
-            {role === "agent" && <AgentSection receipts={allReceipts} />}
-            {role === "mfi" && <MfiSection receipts={allReceipts} />}
+            <StatsBar />
+
+            {/* Farmer: My Receipts */}
+            <SectionCard title="My Receipts" count={supplyCount}>
+              {supplyCount === 0 ? (
+                <EmptyState message="No receipts yet. Visit a warehouse agent to deposit your harvest." />
+              ) : (
+                tokenIds.map((id) => <ReceiptById key={id} tokenId={id} />)
+              )}
+            </SectionCard>
+
+            {/* Agent: Unverified Deposits + Issue Form */}
+            {role === "agent" && (
+              <>
+                <SectionCard title="Unverified Deposits" count={supplyCount}>
+                  {supplyCount === 0 ? (
+                    <EmptyState message="No pending deposits." />
+                  ) : (
+                    tokenIds.map((id) => <ReceiptById key={id} tokenId={id} />)
+                  )}
+                </SectionCard>
+                <IssueReceiptForm onIssued={() => {}} />
+              </>
+            )}
+
+            {/* MFI: Pending Approvals */}
+            {role === "mfi" && (
+              <SectionCard title="Pending Loan Approvals" count={supplyCount}>
+                {supplyCount === 0 ? (
+                  <EmptyState message="No receipts waiting for approval." />
+                ) : (
+                  tokenIds.map((id) => <ReceiptById key={id} tokenId={id} />)
+                )}
+              </SectionCard>
+            )}
+
+            {/* Active Loans */}
+            {tokenIds.length > 0 && (
+              <SectionCard title="Active Loans" count={tokenIds.length}>
+                {tokenIds.map((id) => (
+                  <LoanCardById key={id} tokenId={id} role={role} />
+                ))}
+              </SectionCard>
+            )}
+
+            {/* Yield Pool (farmers) */}
+            {role === "farmer" && address && <YieldSection address={address} />}
           </>
         )}
       </main>
