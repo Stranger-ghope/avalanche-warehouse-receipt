@@ -1,6 +1,7 @@
 "use client";
 
 import { useAccount } from "wagmi";
+import { useQueryClient } from "@tanstack/react-query";
 import { type ReceiptData, LOAN_ORIGINATION_ABI, MOCK_USDC_ABI } from "@/config/contracts";
 import { StatusBadge } from "./StatusBadge";
 import { toast } from "sonner";
@@ -26,6 +27,7 @@ interface LoanCardProps {
 
 export function LoanCard({ receipt, role }: LoanCardProps) {
   const { address } = useAccount();
+  const queryClient = useQueryClient();
   const { data: loanInfo } = useLoanInfo(receipt.tokenId);
   const { data: allowance } = useUSDCAllowance(address, LOAN_ORIGINATION_ADDRESS);
 
@@ -50,6 +52,7 @@ export function LoanCard({ receipt, role }: LoanCardProps) {
       {
         onSuccess: () => {
           toast.success("Loan activated!", { id: "loan-activate" });
+          queryClient.invalidateQueries();
         },
         onError: (error) => {
           toast.error(`Activation failed: ${error.message.slice(0, 80)}`, { id: "loan-activate" });
@@ -72,6 +75,7 @@ export function LoanCard({ receipt, role }: LoanCardProps) {
         {
           onSuccess: () => {
             toast.success("USDC approved! Click Repay again to complete.", { id: "loan-repay" });
+            queryClient.invalidateQueries();
           },
           onError: (error) => {
             toast.error(`Approval failed: ${error.message.slice(0, 80)}`, { id: "loan-repay" });
@@ -90,6 +94,7 @@ export function LoanCard({ receipt, role }: LoanCardProps) {
         {
           onSuccess: () => {
             toast.success("Loan repaid!", { id: "loan-repay" });
+            queryClient.invalidateQueries();
           },
           onError: (error) => {
             toast.error(`Repayment failed: ${error.message.slice(0, 80)}`, { id: "loan-repay" });
@@ -111,6 +116,7 @@ export function LoanCard({ receipt, role }: LoanCardProps) {
       {
         onSuccess: () => {
           toast.success("Loan marked as defaulted.", { id: "loan-default" });
+          queryClient.invalidateQueries();
         },
         onError: (error) => {
           toast.error(`Default failed: ${error.message.slice(0, 80)}`, { id: "loan-default" });
