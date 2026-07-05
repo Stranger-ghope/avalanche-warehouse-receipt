@@ -54,6 +54,17 @@ export function useIsApprovedMfi(address: `0x${string}` | undefined) {
   });
 }
 
+/** Fetch the owner address of a token */
+export function useOwnerOf(tokenId: number | undefined) {
+  return useReadContract({
+    address: CONTRACT_ADDRESSES.warehouseReceipt,
+    abi: WAREHOUSE_RECEIPT_ABI,
+    functionName: "ownerOf",
+    args: tokenId !== undefined ? [BigInt(tokenId)] : undefined,
+    query: { enabled: tokenId !== undefined },
+  });
+}
+
 /** Get total supply of receipts */
 export function useTotalSupply() {
   return useReadContract({
