@@ -19,6 +19,7 @@ import {
 } from "@/config/contracts";
 import { useWriteContract } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 // ─── Navbar ──────────────────────────────────────────────────
 
@@ -142,34 +143,44 @@ function IssueReceiptForm({ onIssued }: { onIssued: () => void }) {
     if (!farmer || !quantityKg || !estValue) return;
     setIsSubmitting(true);
     const expiry = Math.floor(Date.now() / 1000) + 86400 * 60;
-    // Build a warehouseId bytes32 from current timestamp
     const ts = Date.now().toString(16).padStart(2, "0");
     const warehouseId = ("0x" + ts.padEnd(64, "0")) as `0x${string}`;
 
-    writeContract({
-      address: CONTRACT_ADDRESSES.warehouseReceipt,
-      abi: WAREHOUSE_RECEIPT_WRITE_ABI,
-      functionName: "issueReceipt",
-      args: [
-        farmer as `0x${string}`,
-        BigInt(quantityKg),
-        BigInt(expiry),
-        warehouseId,
-        CROP_BYTES32 as `0x${string}`,
-        BigInt(Math.round(parseFloat(estValue) * 1_000_000)),
-        BigInt(quality),
-        "ipfs://QmPlaceholder",
-      ],
-    });
-    setTimeout(() => {
-      setFarmer("");
-      setQuantityKg("");
-      setEstValue("");
-      setQuality("75");
-      setIsSubmitting(false);
-      queryClient.invalidateQueries();
-      onIssued();
-    }, 2000);
+    toast.loading("Submitting receipt...", { id: "issue-receipt" });
+
+    writeContract(
+      {
+        address: CONTRACT_ADDRESSES.warehouseReceipt,
+        abi: WAREHOUSE_RECEIPT_WRITE_ABI,
+        functionName: "issueReceipt",
+        args: [
+          farmer as `0x${string}`,
+          BigInt(quantityKg),
+          BigInt(expiry),
+          warehouseId,
+          CROP_BYTES32 as `0x${string}`,
+          BigInt(Math.round(parseFloat(estValue) * 1_000_000)),
+          BigInt(quality),
+          "ipfs://QmPlaceholder",
+        ],
+      },
+      {
+        onSuccess: () => {
+          toast.success("Receipt issued successfully!", { id: "issue-receipt" });
+          setFarmer("");
+          setQuantityKg("");
+          setEstValue("");
+          setQuality("75");
+          setIsSubmitting(false);
+          queryClient.invalidateQueries();
+          onIssued();
+        },
+        onError: (error) => {
+          toast.error(`Transaction failed: ${error.message.slice(0, 80)}`, { id: "issue-receipt" });
+          setIsSubmitting(false);
+        },
+      },
+    );
   }, [farmer, quantityKg, estValue, quality, writeContract, queryClient, onIssued]);
 
   return (
@@ -238,6 +249,7 @@ function YieldSection({ address }: { address: `0x${string}` }) {
   const { data: apyBps } = useVaultApy();
   const { data: usdcBalance } = useUSDCBalance(address);
   const { data: allowance } = useUSDCAllowance(address, YIELD_VAULT_ADDRESS);
+  const queryClient = useQueryClient();
   const [amount, setAmount] = useState("");
 
   const apyPct = apyBps !== undefined ? (Number(apyBps) / 100).toFixed(1) : "—";
@@ -248,34 +260,72 @@ function YieldSection({ address }: { address: `0x${string}` }) {
   const handleDeposit = () => {
     if (!amount || parseFloat(amount) <= 0) return;
     const depositAmount = BigInt(Math.round(parseFloat(amount) * 1_000_000));
-    writeContract({
-      address: YIELD_VAULT_ADDRESS,
-      abi: YIELD_VAULT_ABI,
-      functionName: "deposit",
-      args: [depositAmount],
-    });
+    toast.loading("Depositing to yield pool...", { id: "yield-deposit" });
+    writeContract(
+      {
+        address: YIELD_VAULT_ADDRESS,
+        abi: YIELD_VAULT_ABI,
+        functionName: "deposit",
+        args: [depositAmount],
+      },
+      {
+        onSuccess: () => {
+          toast.success("Deposit successful!", { id: "yield-deposit" });
+          setAmount("");
+          queryClient.invalidateQueries();
+        },
+        onError: (error) => {
+          toast.error(`Deposit failed: ${error.message.slice(0, 80)}`, { id: "yield-deposit" });
+        },
+      },
+    );
   };
 
   const handleApprove = () => {
     if (!amount || parseFloat(amount) <= 0) return;
     const depositAmount = BigInt(Math.round(parseFloat(amount) * 1_000_000));
-    writeContract({
-      address: MOCK_USDC_ADDRESS,
-      abi: MOCK_USDC_ABI,
-      functionName: "approve",
-      args: [YIELD_VAULT_ADDRESS, depositAmount],
-    });
+    toast.loading("Approving USDC...", { id: "yield-approve" });
+    writeContract(
+      {
+        address: MOCK_USDC_ADDRESS,
+        abi: MOCK_USDC_ABI,
+        functionName: "approve",
+        args: [YIELD_VAULT_ADDRESS, depositAmount],
+      },
+      {
+        onSuccess: () => {
+          toast.success("USDC approved!", { id: "yield-approve" });
+          queryClient.invalidateQueries();
+        },
+        onError: (error) => {
+          toast.error(`Approval failed: ${error.message.slice(0, 80)}`, { id: "yield-approve" });
+        },
+      },
+    );
   };
 
   const handleWithdraw = () => {
     if (!amount || parseFloat(amount) <= 0) return;
     const withdrawAmount = BigInt(Math.round(parseFloat(amount) * 1_000_000));
-    writeContract({
-      address: YIELD_VAULT_ADDRESS,
-      abi: YIELD_VAULT_ABI,
-      functionName: "withdraw",
-      args: [withdrawAmount],
-    });
+    toast.loading("Withdrawing from yield pool...", { id: "yield-withdraw" });
+    writeContract(
+      {
+        address: YIELD_VAULT_ADDRESS,
+        abi: YIELD_VAULT_ABI,
+        functionName: "withdraw",
+        args: [withdrawAmount],
+      },
+      {
+        onSuccess: () => {
+          toast.success("Withdrawal successful!", { id: "yield-withdraw" });
+          setAmount("");
+          queryClient.invalidateQueries();
+        },
+        onError: (error) => {
+          toast.error(`Withdrawal failed: ${error.message.slice(0, 80)}`, { id: "yield-withdraw" });
+        },
+      },
+    );
   };
 
   return (
