@@ -95,7 +95,7 @@ Two-contract design with a registry pattern:
 - **Blockchain:** Avalanche C-chain (Fuji testnet → mainnet)
 - **Smart Contracts:** Solidity ^0.8.28, OpenZeppelin Contracts 5.x (ERC-721, Ownable)
 - **Development:** Hardhat 2.x, TypeScript, Ethers.js v6
-- **Testing:** Chai, Hardhat Toolbox (43 passing tests)
+- **Testing:** Chai, Hardhat Toolbox (62 passing tests)
 - **Frontend:** Next.js 14, wagmi v2, viem, Tailwind CSS
 - **Deployment:** Hardhat scripts with env-based configuration
 
@@ -153,7 +153,7 @@ docs/
 - [x] Frontend dashboard with live contract reads (no mock data)
 - [x] USDC loan origination flow (activate, repay, default)
 - [x] Yield pool with deposit/withdraw
-- [ ] Verify contracts on Snowtrace
+- [x] Verify contracts on Snowtrace
 - [ ] Avalanche C-chain mainnet deployment
 - [ ] Real USDC integration (mainnet swap)
 - [ ] On-chain price oracle integration

@@ -5,3 +5,6 @@ typechain-types/
 coverage/
 coverage.json
 .env
+*.tsbuildinfo
+.superpowers/
+docs/superpowers/
