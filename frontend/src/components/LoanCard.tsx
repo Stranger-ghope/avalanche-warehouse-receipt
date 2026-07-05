@@ -3,6 +3,7 @@
 import { useAccount } from "wagmi";
 import { type ReceiptData, LOAN_ORIGINATION_ABI, MOCK_USDC_ABI } from "@/config/contracts";
 import { StatusBadge } from "./StatusBadge";
+import { toast } from "sonner";
 import {
   LOAN_ORIGINATION_ADDRESS,
   useLoanInfo,
@@ -38,40 +39,84 @@ export function LoanCard({ receipt, role }: LoanCardProps) {
   const loanAmount = loanInfoArr?.[1] ?? 0n;
 
   const handleActivate = () => {
-    writeActivate({
-      address: LOAN_ORIGINATION_ADDRESS,
-      abi: LOAN_ORIGINATION_ABI,
-      functionName: "activateLoan",
-      args: [BigInt(receipt.tokenId)],
-    });
+    toast.loading("Activating loan...", { id: "loan-activate" });
+    writeActivate(
+      {
+        address: LOAN_ORIGINATION_ADDRESS,
+        abi: LOAN_ORIGINATION_ABI,
+        functionName: "activateLoan",
+        args: [BigInt(receipt.tokenId)],
+      },
+      {
+        onSuccess: () => {
+          toast.success("Loan activated!", { id: "loan-activate" });
+        },
+        onError: (error) => {
+          toast.error(`Activation failed: ${error.message.slice(0, 80)}`, { id: "loan-activate" });
+        },
+      }
+    );
   };
 
   const handleRepay = () => {
     const repayAmount = BigInt(receipt.estimatedValueUsd);
     if (!allowance || allowance < repayAmount) {
-      writeApprove({
-        address: MOCK_USDC_ADDRESS,
-        abi: MOCK_USDC_ABI,
-        functionName: "approve",
-        args: [LOAN_ORIGINATION_ADDRESS, repayAmount],
-      });
+      toast.loading("Approving USDC for repayment...", { id: "loan-repay" });
+      writeApprove(
+        {
+          address: MOCK_USDC_ADDRESS,
+          abi: MOCK_USDC_ABI,
+          functionName: "approve",
+          args: [LOAN_ORIGINATION_ADDRESS, repayAmount],
+        },
+        {
+          onSuccess: () => {
+            toast.success("USDC approved! Click Repay again to complete.", { id: "loan-repay" });
+          },
+          onError: (error) => {
+            toast.error(`Approval failed: ${error.message.slice(0, 80)}`, { id: "loan-repay" });
+          },
+        }
+      );
     } else {
-      writeLoanRepay({
-        address: LOAN_ORIGINATION_ADDRESS,
-        abi: LOAN_ORIGINATION_ABI,
-        functionName: "repayLoan",
-        args: [BigInt(receipt.tokenId)],
-      });
+      toast.loading("Repaying loan...", { id: "loan-repay" });
+      writeLoanRepay(
+        {
+          address: LOAN_ORIGINATION_ADDRESS,
+          abi: LOAN_ORIGINATION_ABI,
+          functionName: "repayLoan",
+          args: [BigInt(receipt.tokenId)],
+        },
+        {
+          onSuccess: () => {
+            toast.success("Loan repaid!", { id: "loan-repay" });
+          },
+          onError: (error) => {
+            toast.error(`Repayment failed: ${error.message.slice(0, 80)}`, { id: "loan-repay" });
+          },
+        }
+      );
     }
   };
 
   const handleDefault = () => {
-    writeDefault({
-      address: LOAN_ORIGINATION_ADDRESS,
-      abi: LOAN_ORIGINATION_ABI,
-      functionName: "defaultLoan",
-      args: [BigInt(receipt.tokenId)],
-    });
+    toast.loading("Marking loan as defaulted...", { id: "loan-default" });
+    writeDefault(
+      {
+        address: LOAN_ORIGINATION_ADDRESS,
+        abi: LOAN_ORIGINATION_ABI,
+        functionName: "defaultLoan",
+        args: [BigInt(receipt.tokenId)],
+      },
+      {
+        onSuccess: () => {
+          toast.success("Loan marked as defaulted.", { id: "loan-default" });
+        },
+        onError: (error) => {
+          toast.error(`Default failed: ${error.message.slice(0, 80)}`, { id: "loan-default" });
+        },
+      }
+    );
   };
 
   if (!isActive) return null;
