@@ -7,7 +7,7 @@ import { ReceiptCard } from "@/components/ReceiptCard";
 import { StatsBar } from "@/components/StatsBar";
 import { LoanCard } from "@/components/LoanCard";
 import { useRole } from "@/hooks/useRole";
-import { useReceipt, useTotalSupply } from "@/hooks/useWarehouseReceipt";
+import { useReceipt, useTotalSupply, useOwnerOf } from "@/hooks/useWarehouseReceipt";
 import { useVaultBalance, useVaultTotalAssets, useVaultApy, YIELD_VAULT_ADDRESS } from "@/hooks/useYieldVault";
 import { MOCK_USDC_ADDRESS, useUSDCBalance, useUSDCAllowance } from "@/hooks/useMockUSDC";
 import {
@@ -40,26 +40,30 @@ function Navbar({ isConnected }: { isConnected: boolean }) {
 // ─── Role Banner ─────────────────────────────────────────────
 
 function RoleBanner({ role }: { role: string }) {
-  const banners: Record<string, { emoji: string; title: string; desc: string }> = {
+  const banners: Record<string, { emoji: string; title: string; desc: string; next: string }> = {
     agent: {
       emoji: "\u{1F3DB}️",
       title: "Warehouse Agent",
       desc: "Inspect deposits and issue warehouse receipts to farmers.",
+      next: "Issue a receipt for a farmer’s deposit using the form below.",
     },
     mfi: {
       emoji: "\u{1F3E6}",
       title: "MFI Manager",
       desc: "Activate loans, monitor repayments, and manage risk.",
+      next: "Review Issued receipts and activate loans to disburse USDC to farmers.",
     },
     farmer: {
       emoji: "\u{1F33E}",
       title: "Farmer",
       desc: "Your receipts serve as on-chain collateral for USDC loans.",
+      next: "Your receipts appear below. Use them as collateral to get a loan, or deposit USDC in the Yield Pool.",
     },
     unverified: {
       emoji: "\u{1F464}",
       title: "Unverified",
       desc: "Connect your wallet and register as a participant.",
+      next: "Ask the contract owner to register your address as a participant.",
     },
   };
   const b = banners[role] ?? banners.unverified;
@@ -69,6 +73,7 @@ function RoleBanner({ role }: { role: string }) {
       <div>
         <h2 className="font-semibold text-gray-900">{b.title}</h2>
         <p className="text-sm text-gray-500">{b.desc}</p>
+        <p className="text-xs text-gray-400 mt-1">{b.next}</p>
       </div>
     </div>
   );
@@ -109,11 +114,23 @@ function SkeletonCard() {
 
 // ─── ReceiptById (wraps ReceiptCard with live data fetch) ─────
 
-function ReceiptById({ tokenId }: { tokenId: number }) {
+function ReceiptById({ tokenId, filterMode, userAddress }: {
+  tokenId: number;
+  filterMode?: "all" | "mine" | "issued" | "active";
+  userAddress?: `0x${string}`;
+}) {
   const { data, isLoading, isError } = useReceipt(tokenId);
+  const { data: owner } = filterMode === "mine" ? useOwnerOf(tokenId) : { data: undefined };
+
   if (isLoading) return <SkeletonCard />;
   if (isError || !data) return null;
+
   const receipt: ReceiptData = { ...(data as Omit<ReceiptData, "tokenId">), tokenId };
+
+  if (filterMode === "mine" && (!userAddress || owner !== userAddress)) return null;
+  if (filterMode === "issued" && receipt.status !== 0) return null;
+  if (filterMode === "active" && receipt.status !== 1) return null;
+
   return <ReceiptCard receipt={receipt} />;
 }
 
@@ -384,6 +401,7 @@ export default function Dashboard() {
   const { isConnected, address } = useAccount();
   const { role, isLoading } = useRole();
   const { data: totalSupply } = useTotalSupply();
+  const [showContracts, setShowContracts] = useState(false);
 
   const supplyCount = Number(totalSupply ?? 0);
   const tokenIds = Array.from({ length: supplyCount }, (_, i) => i);
@@ -462,15 +480,29 @@ export default function Dashboard() {
               <LoginButton />
               <p className="mt-6 text-xs text-gray-400">
                 Deployed on Avalanche Fuji Testnet &middot;{" "}
-                <a
-                  href={`https://testnet.snowtrace.io/address/${CONTRACT_ADDRESSES.warehouseReceipt}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline hover:text-gray-600"
+                <button
+                  onClick={() => setShowContracts(!showContracts)}
+                  className="underline hover:text-gray-600 cursor-pointer"
                 >
                   View Contracts on Snowtrace
-                </a>
+                </button>
               </p>
+              {showContracts && (
+                <div className="mt-3 text-xs text-gray-400 space-y-1">
+                  {Object.entries(CONTRACT_ADDRESSES).map(([name, addr]) => (
+                    <div key={name}>
+                      <a
+                        href={`https://testnet.snowtrace.io/address/${addr}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline hover:text-gray-600"
+                      >
+                        {name}: {addr.slice(0, 6)}...{addr.slice(-4)}
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </>
         ) : isLoading ? (
@@ -485,7 +517,9 @@ export default function Dashboard() {
               {supplyCount === 0 ? (
                 <EmptyState message="No receipts yet. Visit a warehouse agent to deposit your harvest." />
               ) : (
-                tokenIds.map((id) => <ReceiptById key={id} tokenId={id} />)
+                tokenIds.map((id) => (
+                  <ReceiptById key={id} tokenId={id} filterMode="mine" userAddress={address} />
+                ))
               )}
             </SectionCard>
 
@@ -496,7 +530,7 @@ export default function Dashboard() {
                   {supplyCount === 0 ? (
                     <EmptyState message="No pending deposits." />
                   ) : (
-                    tokenIds.map((id) => <ReceiptById key={id} tokenId={id} />)
+                    tokenIds.map((id) => <ReceiptById key={id} tokenId={id} filterMode="issued" />)
                   )}
                 </SectionCard>
                 <IssueReceiptForm onIssued={() => {}} />
@@ -509,7 +543,7 @@ export default function Dashboard() {
                 {supplyCount === 0 ? (
                   <EmptyState message="No receipts waiting for approval." />
                 ) : (
-                  tokenIds.map((id) => <ReceiptById key={id} tokenId={id} />)
+                  tokenIds.map((id) => <ReceiptById key={id} tokenId={id} filterMode="issued" />)
                 )}
               </SectionCard>
             )}
