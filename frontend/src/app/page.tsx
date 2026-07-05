@@ -176,35 +176,47 @@ function IssueReceiptForm({ onIssued }: { onIssued: () => void }) {
     <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
       <h3 className="font-semibold text-gray-900">Issue New Receipt</h3>
       <div className="grid grid-cols-2 gap-3">
-        <input
-          className="col-span-2 border border-gray-300 rounded-lg px-3 py-2 text-sm"
-          placeholder="Farmer Address (0x...)"
-          value={farmer}
-          onChange={(e) => setFarmer(e.target.value)}
-        />
-        <input
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-          placeholder="Quantity (kg)"
-          type="number"
-          value={quantityKg}
-          onChange={(e) => setQuantityKg(e.target.value)}
-        />
-        <input
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-          placeholder="Est. Value (USD)"
-          type="number"
-          value={estValue}
-          onChange={(e) => setEstValue(e.target.value)}
-        />
-        <input
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-          placeholder="Quality Score (0-100)"
-          type="number"
-          min={0}
-          max={100}
-          value={quality}
-          onChange={(e) => setQuality(e.target.value)}
-        />
+        <div className="col-span-2">
+          <label className="block text-xs font-medium text-gray-600 mb-1">Farmer Address</label>
+          <input
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            placeholder="0x..."
+            value={farmer}
+            onChange={(e) => setFarmer(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Quantity (kg)</label>
+          <input
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            placeholder="e.g. 500"
+            type="number"
+            value={quantityKg}
+            onChange={(e) => setQuantityKg(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Estimated Value (USD)</label>
+          <input
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            placeholder="e.g. 1200"
+            type="number"
+            value={estValue}
+            onChange={(e) => setEstValue(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Quality Score (0-100)</label>
+          <input
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            placeholder="75"
+            type="number"
+            min={0}
+            max={100}
+            value={quality}
+            onChange={(e) => setQuality(e.target.value)}
+          />
+        </div>
       </div>
       <button
         onClick={handleSubmit}
