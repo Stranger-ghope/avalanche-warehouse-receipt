@@ -22,7 +22,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 // ─── Navbar ──────────────────────────────────────────────────
 
-function Navbar() {
+function Navbar({ isConnected }: { isConnected: boolean }) {
   return (
     <nav className="border-b border-gray-200 bg-white">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -30,7 +30,7 @@ function Navbar() {
           <span className="text-xl font-bold text-emerald-700">AgriVault</span>
           <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">Avalanche</span>
         </div>
-        <LoginButton />
+        {isConnected ? <LoginButton /> : <div />}
       </div>
     </nav>
   );
@@ -328,7 +328,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <Navbar isConnected={isConnected} />
       <main className="max-w-6xl mx-auto px-4 py-8 space-y-6">
         {!isConnected ? (
           <div className="text-center py-24">
