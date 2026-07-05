@@ -19,6 +19,9 @@
   <a href="https://nextjs.org/">
     <img src="https://img.shields.io/badge/Next.js-14-black?logo=next.js" alt="Next.js">
   </a>
+  <a href="https://testnet.snowtrace.io/address/0xC29E2b635a9721e80280a74D2F4D7CED50C9DA2f">
+    <img src="https://img.shields.io/badge/Contracts%20Verified-Snowtrace-3498db" alt="Contracts Verified on Snowtrace">
+  </a>
 </p>
 
 ---
@@ -43,13 +46,13 @@ This transforms an invisible asset into a bankable one. The pilot targets maize 
 
 ## Fuji Testnet Deployment
 
-| Contract | Address | Snowtrace (Fuji) |
-|---|---|---|
-| CropRegistry | `0x1852155e42f6780E89D1e8b991280F54DC7dF0a4` | [View](https://testnet.snowtrace.io/address/0x1852155e42f6780E89D1e8b991280F54DC7dF0a4) |
-| WarehouseReceipt | `0xC29E2b635a9721e80280a74D2F4D7CED50C9DA2f` | [View](https://testnet.snowtrace.io/address/0xC29E2b635a9721e80280a74D2F4D7CED50C9DA2f) |
-| MockUSDC | `0x197f806214B78B682D73d0d5163d693463DF7601` | [View](https://testnet.snowtrace.io/address/0x197f806214B78B682D73d0d5163d693463DF7601) |
-| LoanOrigination | `0xcCF663F53841968C11371fC28619Fff81ad8135d` | [View](https://testnet.snowtrace.io/address/0xcCF663F53841968C11371fC28619Fff81ad8135d) |
-| YieldVault | `0x40C8ceD218d89BeBC7DFfD470f82aaaD079d29eB` | [View](https://testnet.snowtrace.io/address/0x40C8ceD218d89BeBC7DFfD470f82aaaD079d29eB) |
+| Contract | Address | Snowtrace (Fuji) | Status |
+|---|---|---|---|
+| CropRegistry | `0x1852155e42f6780E89D1e8b991280F54DC7dF0a4` | [View](https://testnet.snowtrace.io/address/0x1852155e42f6780E89D1e8b991280F54DC7dF0a4) | ✅ Verified |
+| WarehouseReceipt | `0xC29E2b635a9721e80280a74D2F4D7CED50C9DA2f` | [View](https://testnet.snowtrace.io/address/0xC29E2b635a9721e80280a74D2F4D7CED50C9DA2f) | ✅ Verified |
+| MockUSDC | `0x197f806214B78B682D73d0d5163d693463DF7601` | [View](https://testnet.snowtrace.io/address/0x197f806214B78B682D73d0d5163d693463DF7601) | ✅ Verified |
+| LoanOrigination | `0xcCF663F53841968C11371fC28619Fff81ad8135d` | [View](https://testnet.snowtrace.io/address/0xcCF663F53841968C11371fC28619Fff81ad8135d) | ✅ Verified |
+| YieldVault | `0x40C8ceD218d89BeBC7DFfD470f82aaaD079d29eB` | [View](https://testnet.snowtrace.io/address/0x40C8ceD218d89BeBC7DFfD470f82aaaD079d29eB) | ✅ Verified |
 
 ## Tri-Party Model
 
