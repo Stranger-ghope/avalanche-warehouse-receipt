@@ -331,14 +331,86 @@ export default function Dashboard() {
       <Navbar isConnected={isConnected} />
       <main className="max-w-6xl mx-auto px-4 py-8 space-y-6">
         {!isConnected ? (
-          <div className="text-center py-24">
-            <h1 className="text-4xl font-bold text-gray-900 mb-3">AgriVault</h1>
-            <p className="text-gray-500 mb-8 max-w-md mx-auto">
-              Digital warehouse receipts on Avalanche. Bypassing Malawi&apos;s forex shortage with
-              stablecoin-collateralized micro-loans for smallholder farmers.
-            </p>
-            <LoginButton />
-          </div>
+          <>
+            {/* Hero */}
+            <div className="text-center py-20 bg-gradient-to-b from-emerald-50 to-gray-50 -mx-4 px-4 rounded-2xl">
+              <h1 className="text-4xl font-bold text-gray-900 mb-3">AgriVault</h1>
+              <p className="text-gray-500 mb-6 max-w-lg mx-auto leading-relaxed">
+                Digital warehouse receipts on Avalanche. Bypassing Malawi&apos;s forex shortage with
+                stablecoin-collateralized micro-loans for smallholder farmers.
+              </p>
+              <LoginButton />
+              <p className="mt-6 text-xs text-gray-400">
+                Built on{" "}
+                <span className="font-medium text-emerald-600">Avalanche</span>
+              </p>
+            </div>
+
+            {/* How It Works */}
+            <div className="py-12">
+              <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">How It Works</h2>
+              <p className="text-gray-500 text-center mb-10">Three steps from harvest to liquidity</p>
+              <div className="grid gap-8 md:grid-cols-3">
+                {[
+                  {
+                    icon: "\u{1F33E}",
+                    step: "Step 1",
+                    title: "Deposit Harvest",
+                    desc: "Bring your crop to a verified warehouse agent for inspection and storage.",
+                  },
+                  {
+                    icon: "\u{1F4C4}",
+                    step: "Step 2",
+                    title: "Get Receipt",
+                    desc: "Receive an on-chain warehouse receipt as digital collateral for your stored harvest.",
+                  },
+                  {
+                    icon: "\u{1F4B0}",
+                    step: "Step 3",
+                    title: "Access Loans",
+                    desc: "Use your receipt as collateral to borrow USDC stablecoins from participating MFIs.",
+                  },
+                ].map((s) => (
+                  <div key={s.step} className="text-center">
+                    <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mx-auto mb-3 text-2xl">
+                      {s.icon}
+                    </div>
+                    <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-1">
+                      {s.step}
+                    </p>
+                    <h3 className="font-semibold text-gray-900 mb-1">{s.title}</h3>
+                    <p className="text-sm text-gray-500 leading-relaxed">{s.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Protocol Stats */}
+            <div className="py-8">
+              <h2 className="text-2xl font-bold text-center text-gray-900 mb-6">Protocol Stats</h2>
+              <StatsBar />
+            </div>
+
+            {/* Bottom CTA */}
+            <div className="py-12 text-center border-t border-gray-200">
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Ready to get started?</h2>
+              <p className="text-gray-500 mb-6">
+                Connect your Avalanche wallet to access the protocol.
+              </p>
+              <LoginButton />
+              <p className="mt-6 text-xs text-gray-400">
+                Deployed on Avalanche Fuji Testnet &middot;{" "}
+                <a
+                  href={`https://testnet.snowtrace.io/address/${CONTRACT_ADDRESSES.warehouseReceipt}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-gray-600"
+                >
+                  View Contracts on Snowtrace
+                </a>
+              </p>
+            </div>
+          </>
         ) : isLoading ? (
           <div className="text-center py-24 text-gray-400">Loading your role...</div>
         ) : (
